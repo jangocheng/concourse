@@ -22,7 +22,6 @@ import Html.Styled as HS
 import Job
 import NotFound
 import Pipeline
-import Pipeline.Effects
 import QueryString
 import Resource
 import Resource.Effects
@@ -123,7 +122,7 @@ init flags route =
                 )
 
         Routes.Pipeline teamName pipelineName ->
-            superDupleWrap ( PipelineModel, PipelineMsg )
+            superDupleWrap ( PipelineModel, Callback )
                 (Pipeline.init
                     { teamName = teamName
                     , pipelineName = pipelineName
@@ -131,7 +130,7 @@ init flags route =
                     , route = route
                     }
                     |> Tuple.mapSecond
-                        (List.map Pipeline.Effects.runEffect >> Cmd.batch)
+                        (List.map Effects.runEffect >> Cmd.batch)
                 )
 
         Routes.Dashboard ->
@@ -219,10 +218,10 @@ update turbulence notFound csrfToken msg mdl =
             handleNotFound notFound ( JobModel, Callback ) (Job.handleCallbackWithMessage callback { model | csrfToken = csrfToken })
 
         ( PipelineMsg message, PipelineModel model ) ->
-            handleNotFound
-                notFound
-                ( PipelineModel, PipelineMsg )
-                (Pipeline.updateWithMessage message model)
+            handleNotFound notFound ( PipelineModel, Callback ) (Pipeline.updateWithMessage message model)
+
+        ( Callback callback, PipelineModel model ) ->
+            handleNotFound notFound ( PipelineModel, Callback ) (Pipeline.handleCallbackWithMessage callback model)
 
         ( NewCSRFToken c, ResourceModel model ) ->
             ( ResourceModel { model | csrfToken = c }, Cmd.none )
@@ -258,7 +257,7 @@ urlUpdate : Routes.ConcourseRoute -> Model -> ( Model, Cmd Msg )
 urlUpdate route model =
     case ( route.logical, model ) of
         ( Routes.Pipeline team pipeline, PipelineModel mdl ) ->
-            superDupleWrap ( PipelineModel, PipelineMsg ) <|
+            superDupleWrap ( PipelineModel, Callback ) <|
                 Pipeline.changeToPipelineAndGroups
                     { teamName = team
                     , pipelineName = pipeline
