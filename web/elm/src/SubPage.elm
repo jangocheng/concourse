@@ -9,7 +9,6 @@ module SubPage exposing
 
 import Autoscroll
 import Build
-import Build.Effects
 import Build.Msgs
 import Concourse
 import Dashboard
@@ -67,10 +66,10 @@ init : Flags -> Routes.ConcourseRoute -> ( Model, Cmd Msg )
 init flags route =
     case route.logical of
         Routes.Build teamName pipelineName jobName buildName ->
-            superDupleWrap ( BuildModel, BuildMsg ) <|
+            superDupleWrap ( BuildModel, CallbackAutoScroll ) <|
                 Autoscroll.init
                     Build.getScrollBehavior
-                    << Tuple.mapSecond (Cmd.batch << List.map Build.Effects.runEffect)
+                    << Tuple.mapSecond (Cmd.batch << List.map Effects.runEffect)
                     << Build.init
                         { csrfToken = flags.csrfToken, hash = route.hash }
                 <|
@@ -82,10 +81,10 @@ init flags route =
                         }
 
         Routes.OneOffBuild buildId ->
-            superDupleWrap ( BuildModel, BuildMsg ) <|
+            superDupleWrap ( BuildModel, CallbackAutoScroll ) <|
                 Autoscroll.init
                     Build.getScrollBehavior
-                    << Tuple.mapSecond (Cmd.batch << List.map Build.Effects.runEffect)
+                    << Tuple.mapSecond (Cmd.batch << List.map Effects.runEffect)
                     << Build.init
                         { csrfToken = flags.csrfToken, hash = route.hash }
                 <|
@@ -190,9 +189,9 @@ update turbulence notFound csrfToken msg mdl =
             in
             ( BuildModel { scrollModel | subModel = newBuildModel }
             , buildEffects
-                |> List.map Build.Effects.runEffect
+                |> List.map Effects.runEffect
                 |> Cmd.batch
-                |> Cmd.map (\buildMsg -> BuildMsg (Autoscroll.SubMsg buildMsg))
+                |> Cmd.map (\buildMsg -> CallbackAutoScroll (Autoscroll.SubMsg buildMsg))
             )
 
         ( BuildMsg message, BuildModel scrollModel ) ->
@@ -203,7 +202,17 @@ update turbulence notFound csrfToken msg mdl =
                 model =
                     { scrollModel | subModel = { subModel | csrfToken = csrfToken } }
             in
-            handleNotFound notFound ( BuildModel, BuildMsg ) (Autoscroll.update Build.updateWithMessage message model)
+            handleNotFound notFound ( BuildModel, CallbackAutoScroll ) (Autoscroll.update Build.updateWithMessage message model)
+
+        ( CallbackAutoScroll callback, BuildModel scrollModel ) ->
+            let
+                subModel =
+                    scrollModel.subModel
+
+                model =
+                    { scrollModel | subModel = { subModel | csrfToken = csrfToken } }
+            in
+            handleNotFound notFound ( BuildModel, CallbackAutoScroll ) (Autoscroll.update Build.handleCallbackWithMessage callback model)
 
         ( NewCSRFToken c, JobModel model ) ->
             ( JobModel { model | csrfToken = c }, Cmd.none )
@@ -319,11 +328,11 @@ urlUpdate route model =
                             }
                         )
                         scrollModel.subModel
-                        |> Tuple.mapSecond (List.map Build.Effects.runEffect)
+                        |> Tuple.mapSecond (List.map Effects.runEffect)
                         |> Tuple.mapSecond Cmd.batch
             in
             ( BuildModel { scrollModel | subModel = submodel }
-            , Cmd.map BuildMsg (Cmd.map Autoscroll.SubMsg subcmd)
+            , Cmd.map CallbackAutoScroll (Cmd.map Autoscroll.SubMsg subcmd)
             )
 
         _ ->
