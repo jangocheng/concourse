@@ -24,7 +24,6 @@ import NotFound
 import Pipeline
 import QueryString
 import Resource
-import Resource.Effects
 import Routes
 import String
 import SubPage.Msgs exposing (Msg(..))
@@ -96,7 +95,7 @@ init flags route =
                         Result.withDefault 0 (String.toInt buildId)
 
         Routes.Resource teamName pipelineName resourceName ->
-            superDupleWrap ( ResourceModel, ResourceMsg )
+            superDupleWrap ( ResourceModel, Callback )
                 (Resource.init
                     { resourceName = resourceName
                     , teamName = teamName
@@ -105,7 +104,7 @@ init flags route =
                     , csrfToken = flags.csrfToken
                     }
                     |> Tuple.mapSecond
-                        (List.map Resource.Effects.runEffect >> Cmd.batch)
+                        (List.map Effects.runEffect >> Cmd.batch)
                 )
 
         Routes.Job teamName pipelineName jobName ->
@@ -227,7 +226,10 @@ update turbulence notFound csrfToken msg mdl =
             ( ResourceModel { model | csrfToken = c }, Cmd.none )
 
         ( ResourceMsg message, ResourceModel model ) ->
-            handleNotFound notFound ( ResourceModel, ResourceMsg ) (Resource.updateWithMessage message { model | csrfToken = csrfToken })
+            handleNotFound notFound ( ResourceModel, Callback ) (Resource.updateWithMessage message { model | csrfToken = csrfToken })
+
+        ( Callback callback, ResourceModel model ) ->
+            handleNotFound notFound ( ResourceModel, Callback ) (Resource.handleCallbackWithMessage callback { model | csrfToken = csrfToken })
 
         ( NewCSRFToken c, DashboardModel model ) ->
             ( DashboardModel { model | csrfToken = c }, Cmd.none )
@@ -267,7 +269,7 @@ urlUpdate route model =
                     mdl
 
         ( Routes.Resource teamName pipelineName resourceName, ResourceModel mdl ) ->
-            superDupleWrap ( ResourceModel, ResourceMsg ) <|
+            superDupleWrap ( ResourceModel, Callback ) <|
                 (Resource.changeToResource
                     { teamName = teamName
                     , pipelineName = pipelineName
@@ -277,7 +279,7 @@ urlUpdate route model =
                     }
                     mdl
                     |> Tuple.mapSecond
-                        (List.map Resource.Effects.runEffect >> Cmd.batch)
+                        (List.map Effects.runEffect >> Cmd.batch)
                 )
 
         ( Routes.Job teamName pipelineName jobName, JobModel mdl ) ->

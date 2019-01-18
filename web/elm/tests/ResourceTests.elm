@@ -10,6 +10,7 @@ import DashboardTests
         , middleGrey
         )
 import Dict
+import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Html.Styled as HS
@@ -129,8 +130,8 @@ all =
                     |> Resource.update
                         (Msgs.ExpandVersionedResource versionID)
                     |> Tuple.first
-                    |> Resource.update
-                        (Msgs.InputToFetched versionID
+                    |> Resource.handleCallback
+                        (Effects.InputToFetched versionID
                             (Ok
                                 [ { id = 0
                                   , name = "some-build"
@@ -155,8 +156,8 @@ all =
                     |> Resource.update
                         (Msgs.ExpandVersionedResource versionID)
                     |> Tuple.first
-                    |> Resource.update
-                        (Msgs.OutputOfFetched versionID
+                    |> Resource.handleCallback
+                        (Effects.OutputOfFetched versionID
                             (Ok
                                 [ { id = 0
                                   , name = "some-build"
@@ -250,7 +251,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> Resource.update (Msgs.VersionToggled Msgs.Disable versionID (Ok ()))
+                        |> Resource.handleCallback (Effects.VersionToggled Msgs.Disable versionID (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -261,7 +262,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> Resource.update (Msgs.VersionToggled Msgs.Disable versionID badResponse)
+                        |> Resource.handleCallback (Effects.VersionToggled Msgs.Disable versionID badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -297,7 +298,7 @@ all =
                         |> Resource.update
                             (Msgs.ToggleVersion Msgs.Enable disabledVersionID)
                         |> Tuple.first
-                        |> Resource.update (Msgs.VersionToggled Msgs.Enable disabledVersionID (Ok ()))
+                        |> Resource.handleCallback (Effects.VersionToggled Msgs.Enable disabledVersionID (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -311,7 +312,7 @@ all =
                         |> Resource.update
                             (Msgs.ToggleVersion Msgs.Enable disabledVersionID)
                         |> Tuple.first
-                        |> Resource.update (Msgs.VersionToggled Msgs.Enable disabledVersionID badResponse)
+                        |> Resource.handleCallback (Effects.VersionToggled Msgs.Enable disabledVersionID badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector disabledVersion)
@@ -729,7 +730,7 @@ all =
                         |> givenResourcePinnedDynamically
                         |> givenVersionsWithoutPagination
                         |> clickToUnpin
-                        |> Resource.update (Msgs.VersionUnpinned (Ok ()))
+                        |> Resource.handleCallback (Effects.VersionUnpinned (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasUnpinnedState
@@ -739,7 +740,7 @@ all =
                         |> givenResourcePinnedDynamically
                         |> givenVersionsWithoutPagination
                         |> clickToUnpin
-                        |> Resource.update (Msgs.VersionUnpinned badResponse)
+                        |> Resource.handleCallback (Effects.VersionUnpinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasPinnedState version
@@ -917,7 +918,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.update (Msgs.VersionPinned (Ok ()))
+                        |> Resource.handleCallback (Effects.VersionPinned (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasPinnedState version
@@ -927,7 +928,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.update (Msgs.VersionPinned badResponse)
+                        |> Resource.handleCallback (Effects.VersionPinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> pinBarHasUnpinnedState
@@ -937,7 +938,7 @@ all =
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> clickToPin versionID
-                        |> Resource.update (Msgs.VersionPinned badResponse)
+                        |> Resource.handleCallback (Effects.VersionPinned badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -1174,8 +1175,8 @@ all =
         , test "unsuccessful check shows a warning icon on the right" <|
             \_ ->
                 init
-                    |> Resource.update
-                        (Msgs.ResourceFetched <|
+                    |> Resource.handleCallback
+                        (Effects.ResourceFetched <|
                             Ok
                                 { teamName = teamName
                                 , pipelineName = pipelineName
@@ -1217,8 +1218,8 @@ init =
 
 givenResourcePinnedStatically : Resource.Model -> Resource.Model
 givenResourcePinnedStatically =
-    Resource.update
-        (Msgs.ResourceFetched <|
+    Resource.handleCallback
+        (Effects.ResourceFetched <|
             Ok
                 { teamName = teamName
                 , pipelineName = pipelineName
@@ -1236,8 +1237,8 @@ givenResourcePinnedStatically =
 
 givenResourcePinnedDynamically : Resource.Model -> Resource.Model
 givenResourcePinnedDynamically =
-    Resource.update
-        (Msgs.ResourceFetched <|
+    Resource.handleCallback
+        (Effects.ResourceFetched <|
             Ok
                 { teamName = teamName
                 , pipelineName = pipelineName
@@ -1255,8 +1256,8 @@ givenResourcePinnedDynamically =
 
 givenResourceIsNotPinned : Resource.Model -> Resource.Model
 givenResourceIsNotPinned =
-    Resource.update
-        (Msgs.ResourceFetched <|
+    Resource.handleCallback
+        (Effects.ResourceFetched <|
             Ok
                 { teamName = teamName
                 , pipelineName = pipelineName
@@ -1311,8 +1312,8 @@ clickToDisable versionID =
 
 givenVersionsWithoutPagination : Resource.Model -> Resource.Model
 givenVersionsWithoutPagination =
-    Resource.update
-        (Msgs.VersionedResourcesFetched Nothing <|
+    Resource.handleCallback
+        (Effects.VersionedResourcesFetched Nothing <|
             Ok
                 { content =
                     [ { id = versionID
@@ -1342,8 +1343,8 @@ givenVersionsWithoutPagination =
 
 givenVersionsWithPagination : Resource.Model -> Resource.Model
 givenVersionsWithPagination =
-    Resource.update
-        (Msgs.VersionedResourcesFetched Nothing <|
+    Resource.handleCallback
+        (Effects.VersionedResourcesFetched Nothing <|
             Ok
                 { content =
                     [ { id = versionID
