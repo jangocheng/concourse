@@ -2,12 +2,11 @@ module Resource exposing
     ( Flags
     , Model
     , changeToResource
+    , getUpdateMessage
     , handleCallback
-    , handleCallbackWithMessage
     , init
     , subscriptions
     , update
-    , updateWithMessage
     , view
     , viewPinButton
     , viewVersionBody
@@ -213,22 +212,13 @@ hasPinnedVersion model v =
             False
 
 
-handleCallbackWithMessage : Callback -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
-handleCallbackWithMessage message model =
-    let
-        ( mdl, effects ) =
-            handleCallback
-                message
-                model
-
-        cmd =
-            List.map runEffect effects |> Cmd.batch
-    in
-    if mdl.pageStatus == Err NotFound then
-        ( mdl, cmd, Just UpdateMsg.NotFound )
+getUpdateMessage : Model -> UpdateMsg
+getUpdateMessage model =
+    if model.pageStatus == Err NotFound then
+        UpdateMsg.NotFound
 
     else
-        ( mdl, cmd, Nothing )
+        UpdateMsg.AOK
 
 
 handleCallback : Callback -> Model -> ( Model, List Effect )
@@ -437,22 +427,6 @@ handleCallback action model =
 
         _ ->
             ( model, [] )
-
-
-updateWithMessage : Msg -> Model -> ( Model, Cmd Callback, Maybe UpdateMsg )
-updateWithMessage message model =
-    let
-        ( mdl, effects ) =
-            update message model
-
-        cmd =
-            List.map runEffect effects |> Cmd.batch
-    in
-    if mdl.pageStatus == Err NotFound then
-        ( mdl, cmd, Just UpdateMsg.NotFound )
-
-    else
-        ( mdl, cmd, Nothing )
 
 
 update : Msg -> Model -> ( Model, List Effect )
